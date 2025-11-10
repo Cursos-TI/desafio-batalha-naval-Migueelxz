@@ -1,40 +1,134 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-// Desafio Batalha Naval - MateCheck
-// Este código inicial serve como base para o desenvolvimento do sistema de Batalha Naval.
-// Siga os comentários para implementar cada parte do desafio.
+#define GRID_SIZE 10
+#define SHIP_SIZE 5
+
+typedef struct {
+    int x;
+    int y;
+} Position;
+
+typedef struct {
+    Position positions[SHIP_SIZE];
+    int hits;
+} Ship;
+
+void initializeGrid(int grid[GRID_SIZE][GRID_SIZE]) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            grid[i][j] = 0;
+        }
+    }
+}
+
+void placeShip(int grid[GRID_SIZE][GRID_SIZE], Ship *ship, int startX, int startY, int horizontal) {
+    for (int i = 0; i < SHIP_SIZE; i++) {
+        if (horizontal) {
+            ship->positions[i].x = startX + i;
+            ship->positions[i].y = startY;
+            grid[startY][startX + i] = 1;
+        } else {
+            ship->positions[i].x = startX;
+            ship->positions[i].y = startY + i;
+            grid[startY + i][startX] = 1;
+        }
+    }
+    ship->hits = 0;
+}
+
+void displayGrid(int grid[GRID_SIZE][GRID_SIZE], int showShips) {
+    printf("  0 1 2 3 4 5 6 7 8 9\n");
+    for (int i = 0; i < GRID_SIZE; i++) {
+        printf("%d ", i);
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (grid[i][j] == 0) printf(". ");
+            else if (grid[i][j] == 1 && showShips) printf("S ");
+            else if (grid[i][j] == 2) printf("X ");
+            else if (grid[i][j] == 3) printf("O ");
+            else printf(". ");
+        }
+        printf("\n");
+    }
+}
 
 int main() {
-    // Nível Novato - Posicionamento dos Navios
-    // Sugestão: Declare uma matriz bidimensional para representar o tabuleiro (Ex: int tabuleiro[5][5];).
-    // Sugestão: Posicione dois navios no tabuleiro, um verticalmente e outro horizontalmente.
-    // Sugestão: Utilize `printf` para exibir as coordenadas de cada parte dos navios.
-
-    // Nível Aventureiro - Expansão do Tabuleiro e Posicionamento Diagonal
-    // Sugestão: Expanda o tabuleiro para uma matriz 10x10.
-    // Sugestão: Posicione quatro navios no tabuleiro, incluindo dois na diagonal.
-    // Sugestão: Exiba o tabuleiro completo no console, mostrando 0 para posições vazias e 3 para posições ocupadas.
-
-    // Nível Mestre - Habilidades Especiais com Matrizes
-    // Sugestão: Crie matrizes para representar habilidades especiais como cone, cruz, e octaedro.
-    // Sugestão: Utilize estruturas de repetição aninhadas para preencher as áreas afetadas por essas habilidades no tabuleiro.
-    // Sugestão: Exiba o tabuleiro com as áreas afetadas, utilizando 0 para áreas não afetadas e 1 para áreas atingidas.
-
-    // Exemplos de exibição das habilidades:
-    // Exemplo para habilidade em cone:
-    // 0 0 1 0 0
-    // 0 1 1 1 0
-    // 1 1 1 1 1
+    srand(time(NULL));
     
-    // Exemplo para habilidade em octaedro:
-    // 0 0 1 0 0
-    // 0 1 1 1 0
-    // 0 0 1 0 0
-
-    // Exemplo para habilidade em cruz:
-    // 0 0 1 0 0
-    // 1 1 1 1 1
-    // 0 0 1 0 0
-
+    int playerGrid[GRID_SIZE][GRID_SIZE];
+    int enemyGrid[GRID_SIZE][GRID_SIZE];
+    int playerTargetGrid[GRID_SIZE][GRID_SIZE];
+    
+    initializeGrid(playerGrid);
+    initializeGrid(enemyGrid);
+    initializeGrid(playerTargetGrid);
+    
+    Ship playerShip, enemyShip;
+    
+    // Place player ship
+    printf("=== Battleship Game ===\n");
+    printf("Place your ship (5 cells):\n");
+    int px, py, ph;
+    printf("Enter start X (0-9): ");
+    scanf("%d", &px);
+    printf("Enter start Y (0-9): ");
+    scanf("%d", &py);
+    printf("Horizontal? (1=yes, 0=no): ");
+    scanf("%d", &ph);
+    
+    placeShip(playerGrid, &playerShip, px, py, ph);
+    
+    // Place enemy ship randomly
+    placeShip(enemyGrid, &enemyShip, rand() % 6, rand() % 6, rand() % 2);
+    
+    int playerShots = 0, enemyShots = 0;
+    
+    while (playerShip.hits < SHIP_SIZE && enemyShip.hits < SHIP_SIZE) {
+        printf("\n--- Your Turn ---\n");
+        displayGrid(playerTargetGrid, 0);
+        
+        int sx, sy;
+        printf("Enter target X: ");
+        scanf("%d", &sx);
+        printf("Enter target Y: ");
+        scanf("%d", &sy);
+        
+        if (playerTargetGrid[sy][sx] == 0) {
+            for (int i = 0; i < SHIP_SIZE; i++) {
+                if (enemyShip.positions[i].x == sx && enemyShip.positions[i].y == sy) {
+                    printf("HIT!\n");
+                    playerTargetGrid[sy][sx] = 2;
+                    enemyShip.hits++;
+                    break;
+                }
+            }
+            if (playerTargetGrid[sy][sx] == 0) {
+                printf("MISS!\n");
+                playerTargetGrid[sy][sx] = 3;
+            }
+        }
+        
+        // Enemy turn
+        printf("\n--- Enemy Turn ---\n");
+        int ex = rand() % GRID_SIZE;
+        int ey = rand() % GRID_SIZE;
+        
+        for (int i = 0; i < SHIP_SIZE; i++) {
+            if (playerShip.positions[i].x == ex && playerShip.positions[i].y == ey) {
+                printf("Enemy hit your ship!\n");
+                playerGrid[ey][ex] = 2;
+                playerShip.hits++;
+                break;
+            }
+        }
+    }
+    
+    if (enemyShip.hits == SHIP_SIZE) {
+        printf("\n*** YOU WIN! ***\n");
+    } else {
+        printf("\n*** YOU LOSE! ***\n");
+    }
+    
     return 0;
 }
